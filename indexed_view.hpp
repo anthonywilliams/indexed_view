@@ -94,6 +94,7 @@ namespace jss {
     template <typename Range> class range_holder {
     private:
         mutable Range source_range;
+
     protected:
         range_holder(Range &source_) : source_range(std::move(source_)) {}
 
@@ -104,7 +105,6 @@ namespace jss {
         auto get_source_end() const -> decltype(std::end(this->source_range)) {
             return std::end(source_range);
         }
-
     };
 
     template <typename Range, typename UnderlyingIterator>
@@ -113,9 +113,9 @@ namespace jss {
           public indexed_view_type<UnderlyingIterator> {
     public:
         extended_indexed_view_type(Range &source) :
-            range_holder<Range>(source),
-            indexed_view_type<UnderlyingIterator>(
-                this->get_source_begin(), this->get_source_end()) {}
+            range_holder<Range>(source), indexed_view_type<UnderlyingIterator>(
+                                             this->get_source_begin(),
+                                             this->get_source_end()) {}
     };
 
     template <typename Range>
