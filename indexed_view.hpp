@@ -4,15 +4,30 @@
 
 namespace jss {
     template <typename UnderlyingIterator> class indexed_view_type {
+    private:
+        static constexpr bool nothrow_move_iterators=
+            std::is_nothrow_move_constructible<UnderlyingIterator>::value;
+        static constexpr bool nothrow_comparable_iterators= noexcept(
+            std::declval<UnderlyingIterator &>() ==
+            std::declval<UnderlyingIterator &>());
+        static constexpr bool nothrow_iterator_increment=
+            noexcept(++std::declval<UnderlyingIterator &>());
+
+        using underlying_value_type=
+            decltype(*std::declval<UnderlyingIterator &>());
+        static constexpr bool nothrow_deref=
+            noexcept(*std::declval<UnderlyingIterator &>());
+
     public:
         indexed_view_type(
-            UnderlyingIterator &&begin_, UnderlyingIterator &&end_) :
+            UnderlyingIterator &&begin_,
+            UnderlyingIterator &&end_) noexcept(nothrow_move_iterators) :
             source_begin(std::move(begin_)),
             source_end(std::move(end_)) {}
 
         struct value_type {
             size_t index;
-            decltype(*std::declval<UnderlyingIterator>()) value;
+            underlying_value_type value;
         };
 
         class iterator {
@@ -27,7 +42,9 @@ namespace jss {
             struct postinc_return {
                 value_type value;
 
-                value_type operator*() {
+                value_type
+                operator*() noexcept(std::is_nothrow_move_constructible<
+                                     UnderlyingIterator>::value) {
                     return std::move(value);
                 }
             };
@@ -39,31 +56,39 @@ namespace jss {
             using pointer= value_type *;
             using difference_type= void;
 
-            friend constexpr bool
-            operator==(iterator const &lhs, iterator const &rhs) noexcept {
+            friend constexpr bool operator==(
+                iterator const &lhs,
+                iterator const &rhs) noexcept(nothrow_comparable_iterators) {
                 return lhs.source_iter == rhs.source_iter;
             }
 
-            friend constexpr bool
-            operator!=(iterator const &lhs, iterator const &rhs) noexcept {
+            friend constexpr bool operator!=(
+                iterator const &lhs,
+                iterator const &rhs) noexcept(nothrow_comparable_iterators) {
                 return !(lhs == rhs);
             }
 
-            value_type operator*() const {
+            value_type operator*() const noexcept(
+                nothrow_deref
+                    &&std::is_nothrow_move_constructible<value_type>::value) {
                 return value_type{index, *source_iter};
             }
 
-            arrow_proxy operator->() const {
+            arrow_proxy operator->() const noexcept(
+                nothrow_deref
+                    &&std::is_nothrow_move_constructible<value_type>::value) {
                 return arrow_proxy{value_type{index, *source_iter}};
             }
 
-            iterator &operator++() {
+            iterator &operator++() noexcept(nothrow_iterator_increment) {
                 ++source_iter;
                 ++index;
                 return *this;
             }
 
-            postinc_return operator++(int) {
+            postinc_return operator++(int) noexcept(
+                nothrow_iterator_increment &&nothrow_deref &&std::
+                    is_nothrow_move_constructible<UnderlyingIterator>::value) {
                 postinc_return temp{**this};
                 ++*this;
                 return temp;
@@ -72,17 +97,19 @@ namespace jss {
         private:
             friend class indexed_view_type;
 
-            iterator(size_t index_, UnderlyingIterator source_iter_) :
-                index(index_), source_iter(std::move(source_iter_)) {}
+            iterator(size_t index_, UnderlyingIterator source_iter_) noexcept(
+                nothrow_move_iterators) :
+                index(index_),
+                source_iter(std::move(source_iter_)) {}
 
             size_t index;
             UnderlyingIterator source_iter;
         };
 
-        iterator begin() {
+        iterator begin() noexcept(nothrow_move_iterators) {
             return iterator(0, source_begin);
         }
-        iterator end() {
+        iterator end() noexcept(nothrow_move_iterators) {
             return iterator(0, source_end);
         }
 
@@ -96,13 +123,18 @@ namespace jss {
         mutable Range source_range;
 
     protected:
-        range_holder(Range &source_) : source_range(std::move(source_)) {}
+        range_holder(Range &source_) noexcept(
+            std::is_nothrow_move_constructible<Range>::value) :
+            source_range(std::move(source_)) {}
 
         auto get_source_begin() const
-            -> decltype(std::begin(this->source_range)) {
+            noexcept(noexcept(std::begin(std::declval<Range &>())))
+                -> decltype(std::begin(this->source_range)) {
             return std::begin(source_range);
         }
-        auto get_source_end() const -> decltype(std::end(this->source_range)) {
+        auto get_source_end() const
+            noexcept(noexcept(std::end(std::declval<Range &>())))
+                -> decltype(std::end(this->source_range)) {
             return std::end(source_range);
         }
     };
@@ -112,10 +144,14 @@ namespace jss {
         : range_holder<Range>,
           public indexed_view_type<UnderlyingIterator> {
     public:
-        extended_indexed_view_type(Range &source) :
-            range_holder<Range>(source), indexed_view_type<UnderlyingIterator>(
-                                             this->get_source_begin(),
-                                             this->get_source_end()) {}
+        extended_indexed_view_type(Range &source) noexcept(
+            std::is_nothrow_move_constructible<Range>::value
+                &&std::is_nothrow_move_constructible<UnderlyingIterator>::value
+                    &&noexcept(std::begin(std::declval<Range &>())) &&
+            noexcept(std::end(std::declval<Range &>()))) :
+            range_holder<Range>(source),
+            indexed_view_type<UnderlyingIterator>(
+                this->get_source_begin(), this->get_source_end()) {}
     };
 
     template <typename Range>
