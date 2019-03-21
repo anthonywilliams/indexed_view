@@ -24,6 +24,14 @@ namespace jss {
                 value_type value;
             };
 
+            struct postinc_return {
+                value_type value;
+
+                value_type operator*() {
+                    return std::move(value);
+                }
+            };
+
         public:
             friend constexpr bool
             operator==(iterator const &lhs, iterator const &rhs) noexcept {
@@ -42,6 +50,12 @@ namespace jss {
                 ++source_iter;
                 ++index;
                 return *this;
+            }
+
+            postinc_return operator++(int) {
+                postinc_return temp{**this};
+                ++*this;
+                return temp;
             }
 
         private:
