@@ -12,7 +12,7 @@ namespace jss {
 
         struct value_type {
             size_t index;
-            decltype(*std::declval<UnderlyingIterator>()) &value;
+            decltype(*std::declval<UnderlyingIterator>()) value;
         };
 
         class iterator {

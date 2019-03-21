@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <vector>
 #include <type_traits>
+#include <string>
 
 void test_indexed_view_is_empty_for_empty_vector() {
     std::vector<int> v;
@@ -124,6 +125,34 @@ void test_view_iterator_equality_comparisons() {
     assert(it == view.end());
 }
 
+void test_view_iterator_with_range_for() {
+    std::string const source[]= {"hello", "goodbye", "analysis", "dungeon"};
+
+    std::vector<std::pair<size_t, std::string>> output;
+
+    for(auto const &x : jss::indexed_view(source)) {
+        output.push_back({x.index, x.value});
+    }
+
+    assert(output.size() == 4);
+    for(unsigned i= 0; i < output.size(); ++i) {
+        assert(output[i].first == i);
+        assert(output[i].second == source[i]);
+    }
+}
+
+void test_can_write_through_value_in_range_for() {
+    unsigned const count= 5;
+    int values[count]= {0};
+
+    for(auto const &x : jss::indexed_view(values)) {
+        x.value= x.index * 2;
+    }
+    for(unsigned i= 0; i < count; ++i) {
+        assert(values[i] == i * 2);
+    }
+}
+
 int main() {
     test_indexed_view_is_empty_for_empty_vector();
     test_indexed_view_iterator_has_index_and_value_of_source();
@@ -134,4 +163,6 @@ int main() {
     test_preincrement_view_iterator();
     test_view_iterator_has_iterator_properties();
     test_view_iterator_equality_comparisons();
+    test_view_iterator_with_range_for();
+    test_can_write_through_value_in_range_for();
 }
