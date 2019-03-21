@@ -16,6 +16,14 @@ namespace jss {
         };
 
         class iterator {
+            struct arrow_proxy {
+                value_type *operator->() noexcept {
+                    return &value;
+                }
+
+                value_type value;
+            };
+
         public:
             friend constexpr bool
             operator==(iterator const &lhs, iterator const &rhs) noexcept {
@@ -24,6 +32,10 @@ namespace jss {
 
             value_type operator*() const {
                 return value_type{index, *source_iter};
+            }
+
+            arrow_proxy operator->() const {
+                return arrow_proxy{value_type{index, *source_iter}};
             }
 
         private:
