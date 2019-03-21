@@ -82,6 +82,30 @@ void test_preincrement_view_iterator() {
     assert(&val.value == &v[0]);
 }
 
+void test_view_iterator_has_iterator_properties() {
+    std::vector<int> v{42, 56, 99};
+    auto view= jss::indexed_view(v);
+    static_assert(
+        std::is_same<
+            typename decltype(view.begin())::value_type,
+            typename decltype(view.begin())::reference>::value,
+        "Value type and reference are the same");
+    static_assert(
+        std::is_same<
+            typename decltype(view.begin())::value_type *,
+            typename decltype(view.begin())::pointer>::value,
+        "Pointer is pointer to value type");
+    static_assert(
+        std::is_same<
+            typename decltype(view.begin())::iterator_category,
+            std::input_iterator_tag>::value,
+        "Input iterators");
+    static_assert(
+        std::is_same<
+            typename decltype(view.begin())::difference_type, void>::value,
+        "No difference type");
+}
+
 int main() {
     test_indexed_view_is_empty_for_empty_vector();
     test_indexed_view_iterator_has_index_and_value_of_source();
@@ -90,4 +114,5 @@ int main() {
     test_can_use_arrow_operator_on_iterator();
     test_can_increment_view_iterator();
     test_preincrement_view_iterator();
+    test_view_iterator_has_iterator_properties();
 }

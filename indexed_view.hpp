@@ -33,6 +33,12 @@ namespace jss {
             };
 
         public:
+            using value_type= typename indexed_view_type::value_type;
+            using reference= value_type;
+            using iterator_category= std::input_iterator_tag;
+            using pointer= value_type *;
+            using difference_type= void;
+
             friend constexpr bool
             operator==(iterator const &lhs, iterator const &rhs) noexcept {
                 return lhs.source_iter == rhs.source_iter;
