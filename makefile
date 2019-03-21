@@ -22,4 +22,4 @@ test: $(TEST_EXE)
 	$(RUN_PREFIX)$(TEST_EXE)
 
 $(TEST_EXE): test_indexed_view.cpp indexed_view.hpp
-	$(CXX) $(CXXFLAGS) $(OUTPUTFLAG)$@ $^
+	$(CXX) $(CXXFLAGS) $(OUTPUTFLAG)$@ $<
