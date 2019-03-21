@@ -38,6 +38,12 @@ namespace jss {
                 return arrow_proxy{value_type{index, *source_iter}};
             }
 
+            iterator &operator++() {
+                ++source_iter;
+                ++index;
+                return *this;
+            }
+
         private:
             friend class indexed_view_type;
 

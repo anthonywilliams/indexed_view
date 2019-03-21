@@ -54,10 +54,24 @@ void test_can_use_arrow_operator_on_iterator() {
         "value is ref");
 }
 
+void test_can_increment_view_iterator() {
+    std::vector<int> v{42, 56, 99};
+    auto view= jss::indexed_view(v);
+
+    assert(view.begin()->index == 0);
+    assert(&view.begin()->value == &v[0]);
+
+    auto it= view.begin();
+    ++it;
+    assert(it->index == 1);
+    assert(&it->value == &v[1]);
+}
+
 int main() {
     test_indexed_view_is_empty_for_empty_vector();
     test_indexed_view_iterator_has_index_and_value_of_source();
     test_dereferencing_begin_iterator_of_indexed_view_gives_0_and_element();
     test_begin_and_end_of_non_empty_range_are_not_equal();
     test_can_use_arrow_operator_on_iterator();
+    test_can_increment_view_iterator();
 }
