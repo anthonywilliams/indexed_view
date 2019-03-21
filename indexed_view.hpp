@@ -91,8 +91,47 @@ namespace jss {
         UnderlyingIterator source_end;
     };
 
+    template <typename Range> class range_holder {
+    private:
+        mutable Range source_range;
+    protected:
+        range_holder(Range &source_) : source_range(std::move(source_)) {}
+
+        auto get_source_begin() const
+            -> decltype(std::begin(this->source_range)) {
+            return std::begin(source_range);
+        }
+        auto get_source_end() const -> decltype(std::end(this->source_range)) {
+            return std::end(source_range);
+        }
+
+    };
+
+    template <typename Range, typename UnderlyingIterator>
+    class extended_indexed_view_type
+        : range_holder<Range>,
+          public indexed_view_type<UnderlyingIterator> {
+    public:
+        extended_indexed_view_type(Range &source) :
+            range_holder<Range>(source),
+            indexed_view_type<UnderlyingIterator>(
+                this->get_source_begin(), this->get_source_end()) {}
+    };
+
     template <typename Range>
     auto indexed_view(Range &&source)
+        -> extended_indexed_view_type<Range, decltype(std::begin(source))> {
+        return extended_indexed_view_type<Range, decltype(std::begin(source))>(
+            source);
+    }
+    template <typename Range>
+    auto indexed_view(Range &source)
+        -> indexed_view_type<decltype(std::begin(source))> {
+        return indexed_view_type<decltype(std::begin(source))>(
+            std::begin(source), std::end(source));
+    }
+    template <typename Range>
+    auto indexed_view(Range const &source)
         -> indexed_view_type<decltype(std::begin(source))> {
         return indexed_view_type<decltype(std::begin(source))>(
             std::begin(source), std::end(source));
