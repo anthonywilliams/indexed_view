@@ -44,6 +44,11 @@ namespace jss {
                 return lhs.source_iter == rhs.source_iter;
             }
 
+            friend constexpr bool
+            operator!=(iterator const &lhs, iterator const &rhs) noexcept {
+                return !(lhs == rhs);
+            }
+
             value_type operator*() const {
                 return value_type{index, *source_iter};
             }

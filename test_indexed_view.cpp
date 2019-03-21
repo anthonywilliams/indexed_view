@@ -106,6 +106,24 @@ void test_view_iterator_has_iterator_properties() {
         "No difference type");
 }
 
+void test_view_iterator_equality_comparisons() {
+    std::vector<int> v{42, 56, 99};
+    auto view= jss::indexed_view(v);
+
+    auto it= view.begin();
+    auto it2= it;
+
+    assert(it == it2);
+    assert(!(it != it2));
+    ++it;
+    assert(it == it);
+    assert(it != it2);
+    assert(!(it == it2));
+    ++it;
+    ++it;
+    assert(it == view.end());
+}
+
 int main() {
     test_indexed_view_is_empty_for_empty_vector();
     test_indexed_view_iterator_has_index_and_value_of_source();
@@ -115,4 +133,5 @@ int main() {
     test_can_increment_view_iterator();
     test_preincrement_view_iterator();
     test_view_iterator_has_iterator_properties();
+    test_view_iterator_equality_comparisons();
 }
