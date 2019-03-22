@@ -112,17 +112,17 @@ void test_view_iterator_equality_comparisons() {
     auto view= jss::indexed_view(v);
 
     auto it= view.begin();
-    auto it2= it;
+    auto it2= view.end();
 
-    assert(it == it2);
-    assert(!(it != it2));
+    assert(!(it == it2));
+    assert(it != it2);
     ++it;
-    assert(it == it);
     assert(it != it2);
     assert(!(it == it2));
     ++it;
     ++it;
-    assert(it == view.end());
+    assert(it == it2);
+    assert(!(it != it2));
 }
 
 void test_view_iterator_with_range_for() {
@@ -298,6 +298,69 @@ void test_can_index_input_ranges() {
     }
 }
 
+struct my_range {
+    static const unsigned max= 3;
+
+    size_t values[max];
+
+    my_range() {
+        for(auto x : jss::indexed_view(values)) {
+            x.value= x.index * 2;
+        }
+    }
+
+    class sentinel {};
+
+    struct iterator {
+        my_range *range;
+        unsigned index;
+
+        iterator(my_range *range_) : range(range_), index(0) {}
+
+        size_t operator*() {
+            return range->values[index];
+        }
+
+        iterator &operator++() {
+            ++index;
+            return *this;
+        }
+
+        iterator operator++(int) {
+            iterator temp(*this);
+            ++*this;
+            return temp;
+        }
+
+        friend bool operator!=(iterator const &lhs, sentinel const &rhs) {
+            return lhs.index != max;
+        }
+    };
+
+    iterator begin() {
+        return iterator(this);
+    }
+
+    sentinel end() {
+        return sentinel();
+    }
+};
+
+void test_can_index_ranges_with_sentinels() {
+    my_range r;
+
+    unsigned i= 0;
+
+    for(auto x : r) {
+        assert(x == i * 2);
+        ++i;
+    }
+
+    for(auto x : jss::indexed_view(r)) {
+        assert(x.value == (2 * x.index));
+    }
+}
+
 int main() {
     test_indexed_view_is_empty_for_empty_vector();
     test_indexed_view_iterator_has_index_and_value_of_source();
@@ -311,4 +374,5 @@ int main() {
     test_view_iterator_with_range_for();
     test_can_write_through_value_in_range_for();
     test_can_index_input_ranges();
+    test_can_index_ranges_with_sentinels();
 }
