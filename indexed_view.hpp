@@ -158,16 +158,6 @@ namespace jss {
 
         private:
             friend class indexed_view_type;
-            bool is_iterator() const noexcept {
-                return index != sentinel_marker;
-            }
-
-            void *get_storage_ptr() const noexcept {
-                return static_cast<void *>(&storage);
-            }
-            UnderlyingSentinel &get_sentinel() const noexcept {
-                return *static_cast<UnderlyingSentinel *>(get_storage_ptr());
-            }
 
             void construct_from(iterator const &other) {
                 index= other.index;
