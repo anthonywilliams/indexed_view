@@ -69,3 +69,76 @@ void setup_workers(unsigned num_threads){
     }
 }
 ~~~
+
+## Details
+
+`jss::indexed_view(range)` returns a range object `r` such that `r.begin()` and `r.end()` return
+`InputIterator`s with a `value_type` that holds two elements: one (`index`) is the 0-based index
+into the range and the other (`value`) is the object or reference returned by dereferencing the
+underlying iterator.
+
+### `Range` concept
+
+An object `x` of type `X` implements the `Range` concept used here if:
+
+- `std::begin(x)` returns a type that implements at least the `InputIterator` concept
+- `std::end(x)` returns an object such that `std::begin(x)!=std::end(x)` is well-formed and returns
+  a `bool`.
+- Incrementing the iterator returned from `std::begin(x)` is well-defined provided
+  `std::begin(x)!=std::end(x)` returns `true`.
+
+### `jss::indexed_view` function template
+
+~~~cplusplus
+template<typename Range>
+see-below indexed_view(Range& r);
+
+template<typename Range>
+see-below indexed_view(Range const& r);
+~~~
+
+**Requires:** The supplied argument `r` implements the `Range` concept.
+
+**Effects:** Constructs an instance `v` of a class that implements the `Range` concept, as described
+below. Invokes `std::begin(r)` and `std::end(r)` and stores the results in internal storage owned by
+`v`. Returns `v`.
+
+~~~cplusplus
+template<typename Range>
+see-below indexed_view(Range&& r);
+~~~
+
+**Requires:** The supplied argument `r` implements the `Range` concept, and is `MoveConstructible`.
+
+**Effects:** Constructs an instance `v` of a class that implements the `Range` concept, as described
+below. Move-constructs `r` into internal storage `r2` owned by `v`. Invokes `std::begin(r2)` and
+`std::end(r2)` and stores the results in internal storage owned by `v`. Returns `v`.
+
+### The indexed-view-range 
+
+Given a range `r` of type `R`, `jss::indexed_view(r)` returns a range type as follows:
+
+~~~cplusplus
+class internal-indexed-view-range-type
+{
+public:
+    internal-indexed-view-range-type(internal-indexed-view-range-type&&);
+    
+    class value_type{
+        size_t index;
+        decltype(*std::begin(r)) value;
+    };
+    class iterator;
+    class sentinel;
+    
+    iterator begin();
+    sentinel end();
+};
+~~~
+
+The `value_type` of the iterator is the nested `value_type` member of the range type. The
+`iterator_category` of the iterator is `std::input_iterator_tag`. 
+
+Invoking `v.begin()` or `v.end()` more than once on a given instance `v` of such a view range is
+undefined behaviour.
+
