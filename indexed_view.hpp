@@ -3,6 +3,7 @@
 #include <iterator>
 #include <type_traits>
 #include <stddef.h>
+#include <stdlib.h>
 
 namespace jss {
     template <typename UnderlyingIterator, typename UnderlyingSentinel>
@@ -116,7 +117,80 @@ namespace jss {
                 return temp;
             }
 
+            iterator(iterator const &other) noexcept(
+                nothrow_copy_iterators &&nothrow_copy_sentinels) {
+                construct_from(other);
+            }
+            iterator(iterator &&other) noexcept(
+                nothrow_move_iterators &&nothrow_move_sentinels) {
+                construct_from(std::move(other));
+            }
+
+            iterator &operator=(iterator const &other) noexcept(
+                nothrow_copy_iterators &&nothrow_copy_sentinels) {
+                if(&other != this) {
+                    destroy();
+                    try {
+                        construct_from(other);
+                    } catch(...) {
+                        abort();
+                    }
+                }
+                return *this;
+            }
+
+            iterator &operator=(iterator &&other) noexcept(
+                nothrow_move_iterators &&nothrow_move_sentinels) {
+                if(&other != this) {
+                    destroy();
+                    try {
+                        construct_from(std::move(other));
+                    } catch(...) {
+                        abort();
+                    }
+                }
+                return *this;
+            }
+
             ~iterator() {
+                destroy();
+            }
+
+        private:
+            friend class indexed_view_type;
+            bool is_iterator() const noexcept {
+                return index != sentinel_marker;
+            }
+
+            void *get_storage_ptr() const noexcept {
+                return static_cast<void *>(&storage);
+            }
+            UnderlyingSentinel &get_sentinel() const noexcept {
+                return *static_cast<UnderlyingSentinel *>(get_storage_ptr());
+            }
+
+            void construct_from(iterator const &other) {
+                index= other.index;
+                if(other.is_iterator()) {
+                    new(get_storage_ptr())
+                        UnderlyingIterator(other.get_source_iterator());
+                } else {
+                    new(get_storage_ptr())
+                        UnderlyingSentinel(other.get_sentinel());
+                }
+            }
+            void construct_from(iterator &&other) {
+                index= other.index;
+                if(other.is_iterator()) {
+                    new(get_storage_ptr()) UnderlyingIterator(
+                        std::move(other.get_source_iterator()));
+                } else {
+                    new(get_storage_ptr())
+                        UnderlyingSentinel(std::move(other.get_sentinel()));
+                }
+            }
+
+            void destroy() {
                 if(is_iterator()) {
                     get_source_iterator().~UnderlyingIterator();
                 } else {
@@ -124,8 +198,6 @@ namespace jss {
                 }
             }
 
-        private:
-            friend class indexed_view_type;
             bool is_iterator() const noexcept {
                 return index != sentinel_marker;
             }
@@ -162,7 +234,7 @@ namespace jss {
                 (alignof(UnderlyingIterator) > alignof(UnderlyingSentinel)) ?
                     alignof(UnderlyingIterator) :
                     alignof(UnderlyingSentinel)>::type storage;
-        };
+        }; // namespace jss
 
         iterator begin() noexcept(nothrow_copy_iterators) {
             return iterator(0, source_begin);
@@ -174,7 +246,7 @@ namespace jss {
     private:
         UnderlyingIterator source_begin;
         UnderlyingSentinel source_end;
-    };
+    }; // namespace jss
 
     template <typename Range> class range_holder {
     private:

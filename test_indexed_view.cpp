@@ -423,6 +423,125 @@ void test_can_use_view_with_standard_algorithms() {
     }
 }
 
+struct my_tracked_range {
+    static const unsigned max= 3;
+
+    static unsigned iterator_construct;
+    static unsigned iterator_destruct;
+
+    static unsigned sentinel_construct;
+    static unsigned sentinel_destruct;
+
+    size_t values[max];
+
+    my_tracked_range() {
+        for(auto x : jss::indexed_view(values)) {
+            x.value= x.index * 2;
+        }
+    }
+
+    struct sentinel {
+        sentinel() {
+            ++sentinel_construct;
+        }
+        sentinel(sentinel const &) {
+            ++sentinel_construct;
+        }
+        ~sentinel() {
+            ++sentinel_destruct;
+        }
+    };
+
+    struct iterator {
+        my_tracked_range *range;
+        unsigned index;
+
+        iterator(my_tracked_range *range_) : range(range_), index(0) {
+            ++iterator_construct;
+        }
+        iterator(iterator const &other) :
+            range(other.range), index(other.index) {
+            ++iterator_construct;
+        }
+        ~iterator() {
+            ++iterator_destruct;
+        }
+
+        size_t operator*() {
+            return range->values[index];
+        }
+
+        iterator &operator++() {
+            ++index;
+            return *this;
+        }
+
+        iterator operator++(int) {
+            iterator temp(*this);
+            ++*this;
+            return temp;
+        }
+
+        friend bool operator!=(iterator const &lhs, sentinel const &rhs) {
+            return lhs.index != max;
+        }
+    };
+
+    iterator begin() {
+        return iterator(this);
+    }
+
+    sentinel end() {
+        return sentinel();
+    }
+};
+
+unsigned my_tracked_range::iterator_construct= 0;
+unsigned my_tracked_range::iterator_destruct= 0;
+
+unsigned my_tracked_range::sentinel_construct= 0;
+unsigned my_tracked_range::sentinel_destruct= 0;
+
+void test_properly_handle_iterator_and_sentinel_lifetime() {
+    my_tracked_range r;
+
+    unsigned i= 0;
+
+    for(auto x : jss::indexed_view(r)) {
+        assert(x.value == (2 * x.index));
+    }
+
+    assert(
+        my_tracked_range::iterator_construct ==
+        my_tracked_range::iterator_destruct);
+    assert(
+        my_tracked_range::sentinel_construct ==
+        my_tracked_range::sentinel_destruct);
+
+    {
+        auto view= jss::indexed_view(r);
+
+        auto it= view.begin();
+        it= view.end();
+
+        auto it2= it;
+
+        auto it3= view.begin();
+        auto it4= it3;
+        ++it3;
+
+        it3++;
+        it2= it4;
+    }
+    
+    assert(
+        my_tracked_range::iterator_construct ==
+        my_tracked_range::iterator_destruct);
+    assert(
+        my_tracked_range::sentinel_construct ==
+        my_tracked_range::sentinel_destruct);
+}
+
 int main() {
     test_indexed_view_is_empty_for_empty_vector();
     test_indexed_view_iterator_has_index_and_value_of_source();
@@ -441,4 +560,5 @@ int main() {
     test_can_index_iterator_sentinel_pairs();
     test_can_reuse_view_if_underlying_range_stable();
     test_can_use_view_with_standard_algorithms();
+    test_properly_handle_iterator_and_sentinel_lifetime();
 }
