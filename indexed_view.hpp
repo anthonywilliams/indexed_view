@@ -1,6 +1,8 @@
 #ifndef JSS_INDEXED_VIEW_HPP
 #define JSS_INDEXED_VIEW_HPP
 #include <iterator>
+#include <variant>
+#include <stddef.h>
 
 namespace jss {
     template <typename UnderlyingIterator, typename UnderlyingSentinel>
@@ -38,19 +40,6 @@ namespace jss {
             underlying_value_type value;
         };
 
-        class iterator;
-
-        class sentinel {
-            friend class iterator;
-            friend class indexed_view_type;
-
-            sentinel(UnderlyingSentinel &end_) noexcept(
-                nothrow_copy_sentinels) :
-                end(end_) {}
-
-            mutable UnderlyingSentinel end;
-        };
-
         class iterator {
             struct arrow_proxy {
                 value_type *operator->() noexcept {
@@ -78,31 +67,48 @@ namespace jss {
 
             friend bool operator!=(
                 iterator const &lhs,
-                sentinel const &rhs) noexcept(nothrow_comparable_iterators) {
-                return lhs.source_iter != get_end(rhs);
+                iterator const &rhs) noexcept(nothrow_comparable_iterators) {
+                if(lhs.is_iterator()) {
+                    if(rhs.is_iterator()) {
+                        return lhs.get_iterator_state().index !=
+                               rhs.get_iterator_state().index;
+                    } else {
+                        return lhs.get_iterator_state().source_iter !=
+                               rhs.get_sentinel();
+                    }
+                } else {
+                    if(rhs.is_iterator()) {
+                        return rhs != lhs;
+                    } else {
+                        return false;
+                    }
+                }
             }
 
             friend bool operator==(
                 iterator const &lhs,
-                sentinel const &rhs) noexcept(nothrow_comparable_iterators) {
+                iterator const &rhs) noexcept(nothrow_comparable_iterators) {
                 return !(lhs != rhs);
             }
 
             const value_type operator*() const noexcept(
                 nothrow_deref
                     &&std::is_nothrow_move_constructible<value_type>::value) {
-                return value_type{index, *source_iter};
+                auto &iter= get_iterator_state();
+                return value_type{iter.index, *iter.source_iter};
             }
 
             arrow_proxy operator->() const noexcept(
                 nothrow_deref
                     &&std::is_nothrow_move_constructible<value_type>::value) {
-                return arrow_proxy{value_type{index, *source_iter}};
+                auto &iter= get_iterator_state();
+                return arrow_proxy{value_type{iter.index, *iter.source_iter}};
             }
 
             iterator &operator++() noexcept(nothrow_iterator_increment) {
-                ++source_iter;
-                ++index;
+                auto &iter= get_iterator_state();
+                ++iter.source_iter;
+                ++iter.index;
                 return *this;
             }
 
@@ -116,26 +122,39 @@ namespace jss {
 
         private:
             friend class indexed_view_type;
+            struct iterator_state {
+                size_t index;
+                UnderlyingIterator source_iter;
+            };
 
-            static UnderlyingSentinel const &
-            get_end(sentinel const &s) noexcept {
-                return s.end;
+            bool is_iterator() const noexcept {
+                return std::holds_alternative<iterator_state>(state);
+            }
+
+            UnderlyingSentinel &get_sentinel() const noexcept {
+                return std::get<UnderlyingSentinel>(state);
+            }
+
+            iterator_state &get_iterator_state() const noexcept {
+                return std::get<iterator_state>(state);
             }
 
             iterator(size_t index_, UnderlyingIterator &source_iter_) noexcept(
                 nothrow_copy_iterators) :
-                index(index_),
-                source_iter(source_iter_) {}
+                state(iterator_state{index_, source_iter_}) {}
 
-            size_t index;
-            mutable UnderlyingIterator source_iter;
+            iterator(UnderlyingSentinel &sentinel_) noexcept(
+                nothrow_copy_sentinels) :
+                state(sentinel_) {}
+
+            mutable std::variant<iterator_state, UnderlyingSentinel> state;
         };
 
         iterator begin() noexcept(nothrow_copy_iterators) {
             return iterator(0, source_begin);
         }
-        sentinel end() noexcept(nothrow_copy_sentinels) {
-            return sentinel(source_end);
+        iterator end() noexcept(nothrow_copy_sentinels) {
+            return iterator(source_end);
         }
 
     private:

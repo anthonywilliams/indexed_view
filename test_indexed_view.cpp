@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <string>
 #include <deque>
+#include <algorithm>
 
 void test_indexed_view_is_empty_for_empty_vector() {
     std::vector<int> v;
@@ -408,6 +409,20 @@ void test_can_reuse_view_if_underlying_range_stable() {
     assert(i == v.size());
 }
 
+void test_can_use_view_with_standard_algorithms() {
+    std::vector<int> v;
+    v.resize(100);
+    auto view= jss::indexed_view(v);
+
+    std::for_each(view.begin(), view.end(), [](auto &x) { x.value= x.index; });
+
+    unsigned i= 0;
+    for(auto &x : v) {
+        assert(x == i);
+        ++i;
+    }
+}
+
 int main() {
     test_indexed_view_is_empty_for_empty_vector();
     test_indexed_view_iterator_has_index_and_value_of_source();
@@ -425,4 +440,5 @@ int main() {
     test_can_index_iterator_pairs();
     test_can_index_iterator_sentinel_pairs();
     test_can_reuse_view_if_underlying_range_stable();
+    test_can_use_view_with_standard_algorithms();
 }
