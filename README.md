@@ -114,9 +114,26 @@ see-below indexed_view(Range&& r);
 below. Move-constructs `r` into internal storage `r2` owned by `v`. Invokes `std::begin(r2)` and
 `std::end(r2)` and stores the results in internal storage owned by `v`. Returns `v`.
 
+~~~cplusplus
+template<typename Iterator,typename Sentinel>
+see-below indexed_view(Iterator iter,Sentinel sentinel);
+~~~
+
+**Requires:** `Iterator` is a type that implements at least the `InputIterator`
+concept. `iter!=sentinel` is well-formed and returns a `bool`. Incrementing `iter` is well-defined
+if `iter!=sentinel` returns `true`. `Iterator` and `Sentinel` are `MoveConstructible`.
+
+**Effects:** Constructs an instance `v` of a class that implements the `Range` concept, as described
+below. Move-constructs `it` and `sentinel` into internal storage owned by `v`. Returns `v`.
+
 ### The indexed-view-range 
 
-Given a range `r` of type `R`, `jss::indexed_view(r)` returns a range type as follows:
+Given a range `r` of type `R`, `jss::indexed_view(r)` returns a range type with the behaviour
+described below for `jss::indexed_view(std::begin(r),std::end(r))` in addition to any described in
+the specification of `jss::indexed_view(r)` above.
+
+Given an iterator/sentinel pair `iter` of type `Iter` and `sent` of type `Sentinel`, the range type
+returned from `jss::indexed_view(iter,sent)` is as follows:
 
 ~~~cplusplus
 class internal-indexed-view-range-type
@@ -126,7 +143,7 @@ public:
     
     class value_type{
         size_t index;
-        decltype(*std::begin(r)) value;
+        decltype(*std::declval<Iter&>()) value;
     };
     class iterator;
     class sentinel;
@@ -137,7 +154,9 @@ public:
 ~~~
 
 The `value_type` of the iterator is the nested `value_type` member of the range type. The
-`iterator_category` of the iterator is `std::input_iterator_tag`. 
+`iterator_category` of the iterator is `std::input_iterator_tag`. Comparing an instance of
+`iterator` against an instance of `sentinel` returns the same as the equivalent comparison on the
+internal `Iter` and `Sentinel` values.
 
 Invoking `v.begin()` or `v.end()` more than once on a given instance `v` of such a view range is
 undefined behaviour.
