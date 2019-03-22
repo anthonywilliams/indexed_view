@@ -387,6 +387,27 @@ void test_can_index_iterator_sentinel_pairs() {
     assert(i == my_range::max);
 }
 
+void test_can_reuse_view_if_underlying_range_stable() {
+    std::vector<int> v{42, 56, 99};
+    auto view= jss::indexed_view(v);
+    unsigned i= 0;
+
+    for(auto &x : view) {
+        assert(x.index == i);
+        assert(&x.value == &v[i]);
+        ++i;
+    }
+    assert(i == v.size());
+
+    i= 0;
+    for(auto &x : view) {
+        assert(x.index == i);
+        assert(&x.value == &v[i]);
+        ++i;
+    }
+    assert(i == v.size());
+}
+
 int main() {
     test_indexed_view_is_empty_for_empty_vector();
     test_indexed_view_iterator_has_index_and_value_of_source();
@@ -403,4 +424,5 @@ int main() {
     test_can_index_ranges_with_sentinels();
     test_can_index_iterator_pairs();
     test_can_index_iterator_sentinel_pairs();
+    test_can_reuse_view_if_underlying_range_stable();
 }

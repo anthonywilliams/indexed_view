@@ -158,9 +158,6 @@ The `value_type` of the iterator is the nested `value_type` member of the range 
 `iterator` against an instance of `sentinel` returns the same as the equivalent comparison on the
 internal `Iter` and `Sentinel` values.
 
-Invoking `v.begin()` or `v.end()` more than once on a given instance `v` of such a view range is
-undefined behaviour.
-
 ## License
 
 This code is released under the [Boost Software License](https://www.boost.org/LICENSE_1_0.txt):
