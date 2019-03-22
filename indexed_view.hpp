@@ -3,13 +3,16 @@
 #include <iterator>
 
 namespace jss {
-    template <typename UnderlyingIterator> class indexed_view_type {
+    template <typename UnderlyingIterator, typename UnderlyingSentinel>
+    class indexed_view_type {
     private:
         static constexpr bool nothrow_move_iterators=
             std::is_nothrow_move_constructible<UnderlyingIterator>::value;
+        static constexpr bool nothrow_move_sentinels=
+            std::is_nothrow_move_constructible<UnderlyingSentinel>::value;
         static constexpr bool nothrow_comparable_iterators= noexcept(
-            std::declval<UnderlyingIterator &>() ==
-            std::declval<UnderlyingIterator &>());
+            std::declval<UnderlyingIterator &>() !=
+            std::declval<UnderlyingSentinel &>());
         static constexpr bool nothrow_iterator_increment=
             noexcept(++std::declval<UnderlyingIterator &>());
 
@@ -21,13 +24,26 @@ namespace jss {
     public:
         indexed_view_type(
             UnderlyingIterator &&begin_,
-            UnderlyingIterator &&end_) noexcept(nothrow_move_iterators) :
+            UnderlyingSentinel &&end_) noexcept(nothrow_move_iterators) :
             source_begin(std::move(begin_)),
             source_end(std::move(end_)) {}
 
         struct value_type {
             size_t index;
             underlying_value_type value;
+        };
+
+        class iterator;
+
+        class sentinel {
+            friend class iterator;
+            friend class indexed_view_type;
+
+            sentinel(UnderlyingSentinel &end_) noexcept(
+                nothrow_move_sentinels) :
+                end(std::move(end_)) {}
+
+            mutable UnderlyingSentinel end;
         };
 
         class iterator {
@@ -56,16 +72,16 @@ namespace jss {
             using pointer= value_type *;
             using difference_type= void;
 
-            friend constexpr bool operator==(
-                iterator const &lhs,
-                iterator const &rhs) noexcept(nothrow_comparable_iterators) {
-                return lhs.source_iter == rhs.source_iter;
-            }
-
             friend constexpr bool operator!=(
                 iterator const &lhs,
-                iterator const &rhs) noexcept(nothrow_comparable_iterators) {
-                return !(lhs == rhs);
+                sentinel const &rhs) noexcept(nothrow_comparable_iterators) {
+                return lhs.source_iter != get_end(rhs);
+            }
+
+            friend constexpr bool operator==(
+                iterator const &lhs,
+                sentinel const &rhs) noexcept(nothrow_comparable_iterators) {
+                return !(lhs != rhs);
             }
 
             value_type operator*() const noexcept(
@@ -97,25 +113,30 @@ namespace jss {
         private:
             friend class indexed_view_type;
 
-            iterator(size_t index_, UnderlyingIterator source_iter_) noexcept(
+            static UnderlyingSentinel const &
+            get_end(sentinel const &s) noexcept {
+                return s.end;
+            }
+
+            iterator(size_t index_, UnderlyingIterator &source_iter_) noexcept(
                 nothrow_move_iterators) :
                 index(index_),
                 source_iter(std::move(source_iter_)) {}
 
             size_t index;
-            UnderlyingIterator source_iter;
+            mutable UnderlyingIterator source_iter;
         };
 
         iterator begin() noexcept(nothrow_move_iterators) {
             return iterator(0, source_begin);
         }
-        iterator end() noexcept(nothrow_move_iterators) {
-            return iterator(0, source_end);
+        sentinel end() noexcept(nothrow_move_iterators) {
+            return sentinel(source_end);
         }
 
     private:
         UnderlyingIterator source_begin;
-        UnderlyingIterator source_end;
+        UnderlyingSentinel source_end;
     };
 
     template <typename Range> class range_holder {
@@ -139,38 +160,51 @@ namespace jss {
         }
     };
 
-    template <typename Range, typename UnderlyingIterator>
+    template <
+        typename Range, typename UnderlyingIterator,
+        typename UnderlyingSentinel>
     class extended_indexed_view_type
         : range_holder<Range>,
-          public indexed_view_type<UnderlyingIterator> {
+          public indexed_view_type<UnderlyingIterator, UnderlyingSentinel> {
     public:
         extended_indexed_view_type(Range &source) noexcept(
             std::is_nothrow_move_constructible<Range>::value
                 &&std::is_nothrow_move_constructible<UnderlyingIterator>::value
-                    &&noexcept(std::begin(std::declval<Range &>())) &&
+                    &&std::is_nothrow_move_constructible<UnderlyingSentinel>::
+                        value &&noexcept(std::begin(std::declval<Range &>())) &&
             noexcept(std::end(std::declval<Range &>()))) :
             range_holder<Range>(source),
-            indexed_view_type<UnderlyingIterator>(
+            indexed_view_type<UnderlyingIterator, UnderlyingSentinel>(
                 this->get_source_begin(), this->get_source_end()) {}
     };
 
     template <typename Range>
-    auto indexed_view(Range &&source)
-        -> extended_indexed_view_type<Range, decltype(std::begin(source))> {
-        return extended_indexed_view_type<Range, decltype(std::begin(source))>(
+    auto indexed_view(Range &&source) -> extended_indexed_view_type<
+        Range, decltype(std::begin(source)), decltype(std::end(source))> {
+        return extended_indexed_view_type<
+            Range, decltype(std::begin(source)), decltype(std::end(source))>(
             source);
     }
     template <typename Range>
-    auto indexed_view(Range &source)
-        -> indexed_view_type<decltype(std::begin(source))> {
-        return indexed_view_type<decltype(std::begin(source))>(
+    auto indexed_view(Range &source) -> indexed_view_type<
+        decltype(std::begin(source)), decltype(std::end(source))> {
+        return indexed_view_type<
+            decltype(std::begin(source)), decltype(std::end(source))>(
             std::begin(source), std::end(source));
     }
     template <typename Range>
-    auto indexed_view(Range const &source)
-        -> indexed_view_type<decltype(std::begin(source))> {
-        return indexed_view_type<decltype(std::begin(source))>(
+    auto indexed_view(Range const &source) -> indexed_view_type<
+        decltype(std::begin(source)), decltype(std::end(source))> {
+        return indexed_view_type<
+            decltype(std::begin(source)), decltype(std::end(source))>(
             std::begin(source), std::end(source));
+    }
+    template <typename UnderlyingIterator, typename UnderlyingSentinel>
+    auto
+    indexed_view(UnderlyingIterator source_begin, UnderlyingSentinel source_end)
+        -> indexed_view_type<UnderlyingIterator, UnderlyingSentinel> {
+        return indexed_view_type<UnderlyingIterator, UnderlyingSentinel>(
+            std::move(source_begin), std::move(source_end));
     }
 
 } // namespace jss
