@@ -131,7 +131,7 @@ void test_view_iterator_with_range_for() {
 
     std::vector<std::pair<size_t, std::string>> output;
 
-    for(auto const &x : jss::indexed_view(source)) {
+    for(auto &x : jss::indexed_view(source)) {
         output.push_back({x.index, x.value});
     }
 
@@ -146,7 +146,7 @@ void test_can_write_through_value_in_range_for() {
     unsigned const count= 5;
     int values[count]= {0};
 
-    for(auto const &x : jss::indexed_view(values)) {
+    for(auto &x : jss::indexed_view(values)) {
         x.value= x.index * 2;
     }
     for(unsigned i= 0; i < count; ++i) {
@@ -283,7 +283,7 @@ void test_can_index_input_ranges() {
     unsigned const base= 5;
     unsigned const count= 20;
 
-    for(auto const &x : jss::indexed_view(range(base, base + count))) {
+    for(auto &x : jss::indexed_view(range(base, base + count))) {
         output.push_back({x.index, x.value});
     }
 
@@ -366,7 +366,7 @@ void test_can_index_iterator_pairs() {
     std::deque<int> const d= {1, 45, 67, 98, 123, -45};
 
     unsigned count= 0;
-    for(auto x : jss::indexed_view(d.begin(), d.end())) {
+    for(auto &x : jss::indexed_view(d.begin(), d.end())) {
         assert(x.index == count);
         assert(&x.value == &d[count]);
         ++count;
@@ -379,7 +379,7 @@ void test_can_index_iterator_sentinel_pairs() {
 
     unsigned i= 0;
 
-    for(auto x : jss::indexed_view(r.begin(), r.end())) {
+    for(auto &x : jss::indexed_view(r.begin(), r.end())) {
         assert(x.value == (2 * x.index));
         assert(x.index == i);
         ++i;

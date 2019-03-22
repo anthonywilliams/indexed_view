@@ -58,9 +58,8 @@ namespace jss {
             struct postinc_return {
                 value_type value;
 
-                value_type
-                operator*() noexcept(std::is_nothrow_move_constructible<
-                                     UnderlyingIterator>::value) {
+                const value_type operator*() noexcept(
+                    std::is_nothrow_move_constructible<value_type>::value) {
                     return std::move(value);
                 }
             };
@@ -84,7 +83,7 @@ namespace jss {
                 return !(lhs != rhs);
             }
 
-            value_type operator*() const noexcept(
+            const value_type operator*() const noexcept(
                 nothrow_deref
                     &&std::is_nothrow_move_constructible<value_type>::value) {
                 return value_type{index, *source_iter};
