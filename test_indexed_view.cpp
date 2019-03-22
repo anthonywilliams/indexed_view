@@ -3,6 +3,7 @@
 #include <vector>
 #include <type_traits>
 #include <string>
+#include <deque>
 
 void test_indexed_view_is_empty_for_empty_vector() {
     std::vector<int> v;
@@ -361,6 +362,31 @@ void test_can_index_ranges_with_sentinels() {
     }
 }
 
+void test_can_index_iterator_pairs() {
+    std::deque<int> const d= {1, 45, 67, 98, 123, -45};
+
+    unsigned count= 0;
+    for(auto x : jss::indexed_view(d.begin(), d.end())) {
+        assert(x.index == count);
+        assert(&x.value == &d[count]);
+        ++count;
+    }
+    assert(count == d.size());
+}
+
+void test_can_index_iterator_sentinel_pairs() {
+    my_range r;
+
+    unsigned i= 0;
+
+    for(auto x : jss::indexed_view(r.begin(), r.end())) {
+        assert(x.value == (2 * x.index));
+        assert(x.index == i);
+        ++i;
+    }
+    assert(i == my_range::max);
+}
+
 int main() {
     test_indexed_view_is_empty_for_empty_vector();
     test_indexed_view_iterator_has_index_and_value_of_source();
@@ -375,4 +401,6 @@ int main() {
     test_can_write_through_value_in_range_for();
     test_can_index_input_ranges();
     test_can_index_ranges_with_sentinels();
+    test_can_index_iterator_pairs();
+    test_can_index_iterator_sentinel_pairs();
 }

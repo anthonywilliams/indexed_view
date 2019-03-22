@@ -199,6 +199,13 @@ namespace jss {
             decltype(std::begin(source)), decltype(std::end(source))>(
             std::begin(source), std::end(source));
     }
+    template <typename UnderlyingIterator, typename UnderlyingSentinel>
+    auto
+    indexed_view(UnderlyingIterator source_begin, UnderlyingSentinel source_end)
+        -> indexed_view_type<UnderlyingIterator, UnderlyingSentinel> {
+        return indexed_view_type<UnderlyingIterator, UnderlyingSentinel>(
+            std::move(source_begin), std::move(source_end));
+    }
 
 } // namespace jss
 
