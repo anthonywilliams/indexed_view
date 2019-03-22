@@ -72,13 +72,13 @@ namespace jss {
             using pointer= value_type *;
             using difference_type= void;
 
-            friend constexpr bool operator!=(
+            friend bool operator!=(
                 iterator const &lhs,
                 sentinel const &rhs) noexcept(nothrow_comparable_iterators) {
                 return lhs.source_iter != get_end(rhs);
             }
 
-            friend constexpr bool operator==(
+            friend bool operator==(
                 iterator const &lhs,
                 sentinel const &rhs) noexcept(nothrow_comparable_iterators) {
                 return !(lhs != rhs);
