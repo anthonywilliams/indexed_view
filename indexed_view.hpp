@@ -126,28 +126,18 @@ namespace jss {
                 construct_from(std::move(other));
             }
 
-            iterator &operator=(iterator const &other) noexcept(
-                nothrow_copy_iterators &&nothrow_copy_sentinels) {
+            iterator &operator=(iterator const &other) noexcept {
                 if(&other != this) {
                     destroy();
-                    try {
-                        construct_from(other);
-                    } catch(...) {
-                        abort();
-                    }
+                    construct_from(other);
                 }
                 return *this;
             }
 
-            iterator &operator=(iterator &&other) noexcept(
-                nothrow_move_iterators &&nothrow_move_sentinels) {
+            iterator &operator=(iterator &&other) noexcept {
                 if(&other != this) {
                     destroy();
-                    try {
-                        construct_from(std::move(other));
-                    } catch(...) {
-                        abort();
-                    }
+                    construct_from(std::move(other));
                 }
                 return *this;
             }
@@ -159,7 +149,8 @@ namespace jss {
         private:
             friend class indexed_view_type;
 
-            void construct_from(iterator const &other) {
+            void construct_from(iterator const &other) noexcept(
+                nothrow_copy_iterators &&nothrow_copy_sentinels) {
                 index= other.index;
                 if(other.is_iterator()) {
                     new(get_storage_ptr())
@@ -169,7 +160,8 @@ namespace jss {
                         UnderlyingSentinel(other.get_sentinel());
                 }
             }
-            void construct_from(iterator &&other) {
+            void construct_from(iterator &&other) noexcept(
+                nothrow_move_iterators &&nothrow_move_sentinels) {
                 index= other.index;
                 if(other.is_iterator()) {
                     new(get_storage_ptr()) UnderlyingIterator(
