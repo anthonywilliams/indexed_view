@@ -146,17 +146,29 @@ public:
         decltype(*std::declval<Iter&>()) value;
     };
     class iterator;
-    class sentinel;
     
     iterator begin();
-    sentinel end();
+    iterator end();
 };
 ~~~
 
 The `value_type` of the iterator is the nested `value_type` member of the range type. The
-`iterator_category` of the iterator is `std::input_iterator_tag`. Comparing an instance of
-`iterator` against an instance of `sentinel` returns the same as the equivalent comparison on the
-internal `Iter` and `Sentinel` values.
+`iterator_category` of the iterator is `std::input_iterator_tag`. The `iterator` object returned
+from `begin()` wraps a copy of `iter`, and the `iterator` object returned from `end()` wraps a copy
+of `sent`. Iterator comparisons compare the wrapped objects as appropriate.
+
+The use of the same type for the return values of `begin()` and `end()` allows indexed views to be
+used with standard library algorithms:
+
+~~~cplusplus
+void foo(){
+    std::vector<int> v;
+    v.resize(100);
+    auto view= jss::indexed_view(v);
+
+    std::for_each(view.begin(), view.end(), [](auto &x) { x.value= x.index; });
+}
+~~~
 
 ## License
 
