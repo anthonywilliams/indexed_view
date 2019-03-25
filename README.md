@@ -152,10 +152,10 @@ public:
 };
 ~~~
 
-The `value_type` of the iterator is the nested `value_type` member of the range type. The
-`iterator_category` of the iterator is `std::input_iterator_tag`. The `iterator` object returned
-from `begin()` wraps a copy of `iter`, and the `iterator` object returned from `end()` wraps a copy
-of `sent`. Iterator comparisons compare the wrapped objects as appropriate.
+The `iterator` type is an `InputIterator` with a `value_type` which is the nested `value_type`
+member of the range type. The `iterator` object returned from `begin()` wraps a copy of `iter`, and
+the `iterator` object returned from `end()` wraps a copy of `sent`. Iterator comparisons compare the
+wrapped objects as appropriate.
 
 The use of the same type for the return values of `begin()` and `end()` allows indexed views to be
 used with standard library algorithms:
